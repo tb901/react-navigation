@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useLocale } from '@react-navigation/native';
 import * as React from 'react';
 import { Animated, I18nManager, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,6 +29,7 @@ const renderScene = SceneMap({
 });
 
 export const CustomIndicator = () => {
+  const { direction } = useLocale();
   const insets = useSafeAreaInsets();
   const [index, onIndexChange] = React.useState(0);
   const [routes] = React.useState<Route[]>([
@@ -115,6 +117,7 @@ export const CustomIndicator = () => {
     <View style={[styles.tabbar, { paddingBottom: insets.bottom }]}>
       <TabBar
         {...props}
+        direction={direction}
         renderIcon={renderIcon}
         renderBadge={renderBadge}
         renderIndicator={renderIndicator}
@@ -129,6 +132,7 @@ export const CustomIndicator = () => {
         index,
         routes,
       }}
+      direction={direction}
       renderScene={renderScene}
       renderTabBar={renderTabBar}
       tabBarPosition="bottom"
