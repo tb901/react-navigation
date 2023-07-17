@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 
 import { Pager } from './Pager';
+import { SceneMap } from './SceneMap';
 import { SceneView } from './SceneView';
 import { TabBar } from './TabBar';
 import type {
@@ -21,7 +22,6 @@ import type {
 export type Props<T extends Route> = PagerProps & {
   onIndexChange: (index: number) => void;
   navigationState: NavigationState<T>;
-  renderScene: (props: SceneRendererProps & { route: T }) => React.ReactNode;
   renderLazyPlaceholder?: (props: { route: T }) => React.ReactNode;
   renderTabBar?: (
     props: SceneRendererProps & { navigationState: NavigationState<T> }
@@ -33,12 +33,24 @@ export type Props<T extends Route> = PagerProps & {
   sceneContainerStyle?: StyleProp<ViewStyle>;
   pagerStyle?: StyleProp<ViewStyle>;
   style?: StyleProp<ViewStyle>;
-};
+} & ConditionalProps<T>;
+
+type ConditionalProps<T extends Route> =
+  | {
+      scenes?: Record<string, React.ComponentType<any>>;
+      renderScene?: never;
+    }
+  | {
+      renderScene?: (
+        props: SceneRendererProps & { route: T }
+      ) => React.ReactNode;
+      scenes?: never;
+    };
 
 export function TabView<T extends Route>({
   onIndexChange,
   navigationState,
-  renderScene,
+  renderScene: renderSceneCustom,
   initialLayout,
   keyboardDismissMode = 'auto',
   lazy = false,
@@ -54,6 +66,7 @@ export function TabView<T extends Route>({
   tabBarPosition = 'top',
   animationEnabled = true,
   overScrollMode,
+  scenes,
 }: Props<T>) {
   const [layout, setLayout] = React.useState({
     width: 0,
@@ -78,6 +91,9 @@ export function TabView<T extends Route>({
       return { height, width };
     });
   };
+
+  const sceneMap = React.useMemo(() => scenes && SceneMap(scenes), [scenes]);
+  const renderScene = scenes ? sceneMap : renderSceneCustom;
 
   return (
     <View onLayout={handleLayout} style={[styles.pager, style]}>
@@ -125,7 +141,7 @@ export function TabView<T extends Route>({
                       {({ loading }) =>
                         loading
                           ? renderLazyPlaceholder({ route })
-                          : renderScene({
+                          : renderScene?.({
                               ...sceneRendererProps,
                               route,
                             })

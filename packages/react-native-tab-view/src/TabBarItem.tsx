@@ -13,7 +13,7 @@ import useLatestCallback from 'use-latest-callback';
 
 import { PlatformPressable } from './PlatformPressable';
 import { TabBarItemLabel } from './TabBarItemLabel';
-import type { NavigationState, Route, Scene } from './types';
+import type { NavigationState, Route, TabDescriptor } from './types';
 
 export type Props<T extends Route> = {
   position: Animated.AnimatedInterpolation<number>;
@@ -23,21 +23,7 @@ export type Props<T extends Route> = {
   inactiveColor?: string;
   pressColor?: string;
   pressOpacity?: number;
-  getLabelText: (scene: Scene<T>) => string | undefined;
-  getAccessible: (scene: Scene<T>) => boolean | undefined;
-  getAccessibilityLabel: (scene: Scene<T>) => string | undefined;
-  getTestID: (scene: Scene<T>) => string | undefined;
-  renderLabel?: (scene: {
-    route: T;
-    focused: boolean;
-    color: string;
-  }) => React.ReactNode;
-  renderIcon?: (scene: {
-    route: T;
-    focused: boolean;
-    color: string;
-  }) => React.ReactNode;
-  renderBadge?: (scene: Scene<T>) => React.ReactNode;
+  options?: TabDescriptor;
   onLayout?: (event: LayoutChangeEvent) => void;
   onPress: () => void;
   onLongPress: () => void;
@@ -91,20 +77,24 @@ type TabBarItemInternalProps<T extends Route> = Omit<
   | 'getLabelText'
   | 'getTestID'
   | 'getAccessible'
+  | 'options'
 > & {
   isFocused: boolean;
   index: number;
   routesLength: number;
   accessibilityLabel?: string;
-  label?: string;
+  label?: React.ReactNode;
+  labelText?: string;
   testID?: string;
   accessible?: boolean;
+  icon?: React.ReactNode;
+  badge?: React.ReactNode;
 };
 
 const TabBarItemInternal = <T extends Route>({
   accessibilityLabel,
   accessible,
-  label: labelText,
+  label: customLabel,
   testID,
   onLongPress,
   onPress,
@@ -119,11 +109,11 @@ const TabBarItemInternal = <T extends Route>({
   index: tabIndex,
   pressColor,
   pressOpacity,
-  renderBadge,
-  renderIcon,
   defaultTabWidth,
+  icon: customIcon,
+  badge: customBadge,
+  labelText,
   routesLength,
-  renderLabel: renderLabelCustom,
   android_ripple = { borderless: true },
 }: TabBarItemInternalProps<T>) => {
   const labelColorFromStyle = StyleSheet.flatten(labelStyle || {}).color;
@@ -147,15 +137,17 @@ const TabBarItemInternal = <T extends Route>({
   let icon: React.ReactNode | null = null;
   let label: React.ReactNode | null = null;
 
-  if (renderIcon) {
-    const activeIcon = renderIcon({
-      route,
-      focused: true,
-      color: activeColor,
-    });
-    const inactiveIcon = renderIcon({
+  if (customIcon && React.isValidElement(customIcon)) {
+    const activeIcon = React.cloneElement(customIcon, {
+      // @ts-ignore TODO
       route,
       focused: false,
+      color: activeColor,
+    });
+    const inactiveIcon = React.cloneElement(customIcon, {
+      // @ts-ignore TODO
+      route,
+      focused: true,
       color: inactiveColor,
     });
 
@@ -175,26 +167,20 @@ const TabBarItemInternal = <T extends Route>({
     }
   }
 
-  const renderLabel = renderLabelCustom
-    ? renderLabelCustom
-    : (labelProps: { color: string }) => (
-        <TabBarItemLabel
-          {...labelProps}
-          icon={icon}
-          label={labelText}
-          labelStyle={labelStyle}
-        />
-      );
+  const renderLabel = (labelProps: { color: string }) => (
+    <TabBarItemLabel
+      {...labelProps}
+      icon={icon}
+      label={labelText}
+      labelStyle={labelStyle}
+    />
+  );
 
   if (renderLabel) {
     const activeLabel = renderLabel({
-      route,
-      focused: true,
       color: activeColor,
     });
     const inactiveLabel = renderLabel({
-      route,
-      focused: false,
       color: inactiveColor,
     });
 
@@ -219,12 +205,10 @@ const TabBarItemInternal = <T extends Route>({
     ? null
     : { width: defaultTabWidth };
 
-  const scene = { route };
-
   accessibilityLabel =
     typeof accessibilityLabel !== 'undefined' ? accessibilityLabel : labelText;
 
-  const badge = renderBadge ? renderBadge(scene) : null;
+  const badge = customBadge !== undefined ? customBadge : null;
 
   return (
     <PlatformPressable
@@ -246,7 +230,7 @@ const TabBarItemInternal = <T extends Route>({
     >
       <View pointerEvents="none" style={[styles.item, tabStyle]}>
         {icon}
-        {label}
+        {customLabel || label}
         {badge != null ? <View style={styles.badge}>{badge}</View> : null}
       </View>
     </PlatformPressable>
@@ -264,10 +248,7 @@ export function TabBarItem<T extends Route>(props: Props<T>) {
     onLayout,
     navigationState,
     route,
-    getAccessibilityLabel,
-    getLabelText,
-    getTestID,
-    getAccessible,
+    options,
     ...rest
   } = props;
   const onPressLatest = useLatestCallback(onPress);
@@ -276,16 +257,12 @@ export function TabBarItem<T extends Route>(props: Props<T>) {
 
   const tabIndex = navigationState.routes.indexOf(route);
 
-  const scene = { route };
-
-  const accessibilityLabel = getAccessibilityLabel(scene);
-  const label = getLabelText(scene);
-  const testID = getTestID(scene);
-  const accessible = getAccessible(scene);
+  console.log({ options });
 
   return (
     <MemoizedTabBarItemInternal
       {...rest}
+      {...options}
       onPress={onPressLatest}
       onLayout={onLayoutLatest}
       onLongPress={onLongPressLatest}
@@ -293,10 +270,6 @@ export function TabBarItem<T extends Route>(props: Props<T>) {
       route={route}
       index={tabIndex}
       routesLength={navigationState.routes.length}
-      accessibilityLabel={accessibilityLabel}
-      label={label}
-      testID={testID}
-      accessible={accessible}
     />
   );
 }

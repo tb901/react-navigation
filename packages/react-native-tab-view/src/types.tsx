@@ -1,6 +1,16 @@
 import type { Animated } from 'react-native';
 import type { PagerViewProps } from 'react-native-pager-view';
 
+export type TabDescriptor = {
+  accessibilityLabel?: string;
+  accessible?: boolean;
+  testID?: string;
+  label?: React.ReactNode;
+  labelText?: string;
+  icon?: React.ReactNode;
+  badge?: React.ReactNode;
+};
+
 export type Route = {
   key: string;
   icon?: string;

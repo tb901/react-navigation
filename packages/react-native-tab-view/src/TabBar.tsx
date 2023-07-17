@@ -25,6 +25,7 @@ import type {
   Route,
   Scene,
   SceneRendererProps,
+  TabDescriptor,
 } from './types';
 import { useAnimatedValue } from './useAnimatedValue';
 
@@ -36,6 +37,7 @@ export type Props<T extends Route> = SceneRendererProps & {
   inactiveColor?: string;
   pressColor?: string;
   pressOpacity?: number;
+  options?: Record<string, TabDescriptor>;
   getLabelText?: (scene: Scene<T>) => string | undefined;
   getAccessible?: (scene: Scene<T>) => boolean | undefined;
   getAccessibilityLabel?: (scene: Scene<T>) => string | undefined;
@@ -308,7 +310,6 @@ const getScrollAmount = <T extends Route>({
     flattenedPaddingRight,
   });
 };
-
 const getLabelTextDefault = ({ route }: Scene<Route>) => route.title;
 
 const getAccessibleDefault = ({ route }: Scene<Route>) =>
@@ -336,6 +337,8 @@ export function TabBar<T extends Route>({
   getAccessible = getAccessibleDefault,
   getAccessibilityLabel = getAccessibilityLabelDefault,
   getTestID = getTestIdDefault,
+  renderBadge,
+  renderLabel,
   renderIndicator = renderIndicatorDefault,
   gap = 0,
   scrollEnabled,
@@ -353,15 +356,14 @@ export function TabBar<T extends Route>({
   onTabPress,
   pressColor,
   pressOpacity,
-  renderBadge,
-  renderIcon,
-  renderLabel,
   renderTabBarItem,
   style,
   tabStyle,
   layout: propLayout,
   testID,
   android_ripple,
+  options,
+  renderIcon,
 }: Props<T>) {
   const [layout, setLayout] = React.useState<Layout>(
     propLayout ?? { width: 0, height: 0 }
@@ -456,13 +458,25 @@ export function TabBar<T extends Route>({
         position: position,
         route: route,
         navigationState: navigationState,
-        getAccessibilityLabel: getAccessibilityLabel,
-        getAccessible: getAccessible,
-        getLabelText: getLabelText,
-        getTestID: getTestID,
-        renderBadge: renderBadge,
-        renderIcon: renderIcon,
-        renderLabel: renderLabel,
+        options: {
+          testID: getTestID({ route }),
+          labelText: getLabelText({ route }),
+          accessible: getAccessible({ route }),
+          accessibilityLabel: getAccessibilityLabel({ route }),
+          icon: renderIcon?.({
+            route,
+            focused: navigationState.index === index,
+            color: activeColor ?? '',
+          }),
+          badge: renderBadge?.({ route }),
+          label: renderLabel?.({
+            color: activeColor ?? '',
+            route,
+            focused: navigationState.index === index,
+          }),
+
+          ...options?.[route.key],
+        },
         activeColor: activeColor,
         inactiveColor: inactiveColor,
         pressColor: pressColor,
@@ -544,33 +558,34 @@ export function TabBar<T extends Route>({
       );
     },
     [
-      activeColor,
-      android_ripple,
-      gap,
-      getAccessibilityLabel,
-      getAccessible,
-      getLabelText,
-      getTestID,
-      inactiveColor,
-      isWidthDynamic,
-      jumpTo,
-      labelStyle,
-      layout,
-      navigationState,
-      onTabLongPress,
-      onTabPress,
       position,
+      navigationState,
+      getTestID,
+      getLabelText,
+      getAccessible,
+      getAccessibilityLabel,
+      renderIcon,
+      activeColor,
+      renderBadge,
+      renderLabel,
+      options,
+      inactiveColor,
       pressColor,
       pressOpacity,
-      renderBadge,
-      renderIcon,
-      renderLabel,
-      renderTabBarItem,
+      isWidthDynamic,
+      labelStyle,
+      tabStyle,
+      layout,
       routes,
       scrollEnabled,
-      tabStyle,
-      contentContainerStyle,
       tabWidths,
+      contentContainerStyle,
+      gap,
+      android_ripple,
+      renderTabBarItem,
+      onTabPress,
+      jumpTo,
+      onTabLongPress,
     ]
   );
 
